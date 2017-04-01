@@ -1,5 +1,5 @@
-Hangfire 
-=========
+Hangfire (Haxi's Fork)
+=======================
 
 [![Official Site](https://img.shields.io/badge/site-hangfire.io-blue.svg)](http://hangfire.io) [![Latest version](https://img.shields.io/nuget/v/Hangfire.svg)](https://www.nuget.org/packages?q=hangfire) [![License LGPLv3](https://img.shields.io/badge/license-LGPLv3-green.svg)](http://www.gnu.org/licenses/lgpl-3.0.html) [![codecov](https://codecov.io/gh/HangfireIO/Hangfire/branch/master/graph/badge.svg)](https://codecov.io/gh/HangfireIO/Hangfire) [![Coverity Scan Build Status](https://scan.coverity.com/projects/4423/badge.svg)](https://scan.coverity.com/projects/hangfireio-hangfire)
 
@@ -11,6 +11,8 @@ Hangfire
 **Linux / OS X** | [![Travis CI Build Status](https://travis-ci.org/HangfireIO/Hangfire.svg?branch=master)](https://travis-ci.org/HangfireIO/Hangfire) | [![Linux and OS X Build Status](https://travis-ci.org/HangfireIO/Hangfire.svg?branch=dev)](https://travis-ci.org/HangfireIO/Hangfire)
 
 ## Overview
+
+-- This fork is created to modify the sql server storage to use Guids as primary keys. This is nessessary to enable replication --
 
 Incredibly easy way to perform **fire-and-forget**, **delayed** and **recurring jobs** inside **ASP.NET applications**. CPU and I/O intensive, long-running and short-running jobs are supported. No Windows Service / Task Scheduler required. Backed by Redis, SQL Server, SQL Azure and MSMQ.
 
