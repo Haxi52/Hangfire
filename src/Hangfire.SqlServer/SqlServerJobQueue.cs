@@ -83,7 +83,7 @@ where Queue in @queues";
                             _storage,
                             connection,
                             transaction,
-                            fetchedJob.JobId.ToString(CultureInfo.InvariantCulture),
+                            fetchedJob.JobId.ToString(),
                             fetchedJob.Queue);
                     }
                 }
@@ -110,11 +110,11 @@ where Queue in @queues";
 #endif
         {
             string enqueueJobSql =
-$@"insert into [{_storage.SchemaName}].JobQueue (JobId, Queue) values (@jobId, @queue)";
+$@"insert into [{_storage.SchemaName}].JobQueue (Id, JobId, Queue) values (NEWID(), @jobId, @queue)";
 
             connection.Execute(
                 enqueueJobSql, 
-                new { jobId = long.Parse(jobId), queue = queue }
+                new { jobId = Guid.Parse(jobId), queue = queue }
 #if !NETFULL
                 , transaction
 #endif
@@ -124,8 +124,8 @@ $@"insert into [{_storage.SchemaName}].JobQueue (JobId, Queue) values (@jobId, @
         [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
         private class FetchedJob
         {
-            public long Id { get; set; }
-            public long JobId { get; set; }
+            public Guid Id { get; set; }
+            public Guid JobId { get; set; }
             public string Queue { get; set; }
         }
     }

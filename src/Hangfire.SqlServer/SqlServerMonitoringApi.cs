@@ -213,7 +213,7 @@ namespace Hangfire.SqlServer
 
                 // TODO: Remove the Select method call to support `bigint`.
                 var firstJobs = UseConnection(connection => 
-                    EnqueuedJobs(connection, enqueuedJobIds.Select(x => (long)x).ToArray()));
+                    EnqueuedJobs(connection, enqueuedJobIds.ToArray()));
 
                 result.Add(new QueueWithTopEnqueuedJobsDto
                 {
@@ -233,7 +233,7 @@ namespace Hangfire.SqlServer
             var enqueuedJobIds = queueApi.GetEnqueuedJobIds(queue, from, perPage);
 
             // TODO: Remove the Select method call to support `bigint`.
-            return UseConnection(connection => EnqueuedJobs(connection, enqueuedJobIds.Select(x => (long)x).ToArray()));
+            return UseConnection(connection => EnqueuedJobs(connection, enqueuedJobIds.ToArray()));
         }
 
         public JobList<FetchedJobDto> FetchedJobs(string queue, int @from, int perPage)
@@ -242,7 +242,7 @@ namespace Hangfire.SqlServer
             var fetchedJobIds = queueApi.GetFetchedJobIds(queue, from, perPage);
 
             // TODO: Remove the Select method call to support `bigint`.
-            return UseConnection(connection => FetchedJobs(connection, fetchedJobIds.Select(x => (long)x).ToArray()));
+            return UseConnection(connection => FetchedJobs(connection, fetchedJobIds.ToArray()));
         }
 
         public IDictionary<DateTime, long> HourlySucceededJobs()
@@ -266,7 +266,7 @@ select * from [{_storage.SchemaName}].Job with (nolock) where Id = @id
 select * from [{_storage.SchemaName}].JobParameter with (nolock) where JobId = @id
 select * from [{_storage.SchemaName}].State with (nolock) where JobId = @id order by Id desc";
 
-                using (var multi = connection.QueryMultiple(sql, new { id = jobId }, commandTimeout: _storage.CommandTimeout))
+                using (var multi = connection.QueryMultiple(sql, new { id = Guid.Parse(jobId) }, commandTimeout: _storage.CommandTimeout))
                 {
                     var job = multi.Read<SqlJob>().SingleOrDefault();
                     if (job == null) return null;
@@ -432,7 +432,7 @@ where [Key] in @keys";
             return _storage.UseConnection(action);
         }
 
-        private JobList<EnqueuedJobDto> EnqueuedJobs(DbConnection connection, long[] jobIds)
+        private JobList<EnqueuedJobDto> EnqueuedJobs(DbConnection connection, Guid[] jobIds)
         {
             string enqueuedJobsSql = 
 $@"select j.*, s.Reason as StateReason, s.Data as StateData 
@@ -501,7 +501,7 @@ where j.Id in @jobIds";
             string jobsSql = 
 $@";with cte as 
 (
-  select j.Id, row_number() over (order by j.Id desc) as row_num
+  select j.Id, row_number() over (order by j.CreatedAt desc) as row_num
   from [{_storage.SchemaName}].Job j with (nolock, forceseek)
   where j.StateName = @stateName
 )
@@ -510,7 +510,7 @@ from [{_storage.SchemaName}].Job j with (nolock)
 inner join cte on cte.Id = j.Id 
 left join [{_storage.SchemaName}].State s with (nolock) on j.StateId = s.Id
 where cte.row_num between @start and @end
-order by j.Id desc";
+order by j.CreatedAt desc";
 
             var jobs = connection.Query<SqlJob>(
                         jobsSql,
@@ -549,7 +549,7 @@ order by j.Id desc";
             return new JobList<TDto>(result);
         }
 
-        private JobList<FetchedJobDto> FetchedJobs(DbConnection connection, IEnumerable<long> jobIds)
+        private JobList<FetchedJobDto> FetchedJobs(DbConnection connection, IEnumerable<Guid> jobIds)
         { 
             string fetchedJobsSql = 
 $@"select j.*, s.Reason as StateReason, s.Data as StateData 
@@ -581,4 +581,3 @@ where j.Id in @jobIds";
         }
     }
 }
-

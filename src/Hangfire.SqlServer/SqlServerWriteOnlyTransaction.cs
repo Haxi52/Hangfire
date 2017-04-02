@@ -77,7 +77,7 @@ namespace Hangfire.SqlServer
         {
             QueueCommand((connection, transaction) => connection.Execute(
                 $@"update [{_storage.SchemaName}].Job set ExpireAt = @expireAt where Id = @id",
-                new { expireAt = DateTime.UtcNow.Add(expireIn), id = long.Parse(jobId) },
+                new { expireAt = DateTime.UtcNow.Add(expireIn), id = Guid.Parse(jobId) },
                 transaction,
                 _storage.CommandTimeout));
         }
@@ -86,7 +86,7 @@ namespace Hangfire.SqlServer
         {
             QueueCommand((connection, transaction) => connection.Execute(
                 $@"update [{_storage.SchemaName}].Job set ExpireAt = NULL where Id = @id",
-                new { id = long.Parse(jobId) },
+                new { id = Guid.Parse(jobId) },
                 transaction,
                 _storage.CommandTimeout));
         }
@@ -94,20 +94,20 @@ namespace Hangfire.SqlServer
         public override void SetJobState(string jobId, IState state)
         {
             string addAndSetStateSql = 
-$@"insert into [{_storage.SchemaName}].State (JobId, Name, Reason, CreatedAt, Data)
-values (@jobId, @name, @reason, @createdAt, @data);
-update [{_storage.SchemaName}].Job set StateId = SCOPE_IDENTITY(), StateName = @name where Id = @id;";
+$@"insert into [{_storage.SchemaName}].State (Id, JobId, Name, Reason, CreatedAt, Data)
+values (@stateId, @jobId, @name, @reason, @createdAt, @data);
+update [{_storage.SchemaName}].Job set StateId = @stateId, StateName = @name where Id = @jobId;";
 
             QueueCommand((connection, transaction) => connection.Execute(
                 addAndSetStateSql,
                 new
                 {
-                    jobId = long.Parse(jobId),
+                    jobId = Guid.Parse(jobId),
                     name = state.Name,
                     reason = state.Reason,
                     createdAt = DateTime.UtcNow,
                     data = JobHelper.ToJson(state.SerializeData()),
-                    id = long.Parse(jobId)
+                    stateId = Guid.NewGuid(),
                 },
                 transaction,
                 _storage.CommandTimeout));
@@ -116,14 +116,14 @@ update [{_storage.SchemaName}].Job set StateId = SCOPE_IDENTITY(), StateName = @
         public override void AddJobState(string jobId, IState state)
         {
             string addStateSql =
-$@"insert into [{_storage.SchemaName}].State (JobId, Name, Reason, CreatedAt, Data)
-values (@jobId, @name, @reason, @createdAt, @data)";
+$@"insert into [{_storage.SchemaName}].State (Id, JobId, Name, Reason, CreatedAt, Data)
+values (NEWID(), @jobId, @name, @reason, @createdAt, @data)";
 
             QueueCommand((connection, transaction) => connection.Execute(
                 addStateSql,
                 new
                 {
-                    jobId = long.Parse(jobId), 
+                    jobId = Guid.Parse(jobId), 
                     name = state.Name,
                     reason = state.Reason,
                     createdAt = DateTime.UtcNow, 
@@ -155,7 +155,7 @@ values (@jobId, @name, @reason, @createdAt, @data)";
         public override void IncrementCounter(string key)
         {
             QueueCommand((connection, transaction) => connection.Execute(
-                $@"insert into [{_storage.SchemaName}].Counter ([Key], [Value]) values (@key, @value)",
+                $@"insert into [{_storage.SchemaName}].Counter ([Id], [Key], [Value]) values (NEWID(), @key, @value)",
                 new { key, value = +1 },
                 transaction,
                 _storage.CommandTimeout));
@@ -164,7 +164,7 @@ values (@jobId, @name, @reason, @createdAt, @data)";
         public override void IncrementCounter(string key, TimeSpan expireIn)
         {
             QueueCommand((connection, transaction) => connection.Execute(
-                $@"insert into [{_storage.SchemaName}].Counter ([Key], [Value], [ExpireAt]) values (@key, @value, @expireAt)",
+                $@"insert into [{_storage.SchemaName}].Counter ([ID], [Key], [Value], [ExpireAt]) values (NEWID(), @key, @value, @expireAt)",
                 new { key, value = +1, expireAt = DateTime.UtcNow.Add(expireIn) },
                 transaction,
                 _storage.CommandTimeout));
@@ -173,7 +173,7 @@ values (@jobId, @name, @reason, @createdAt, @data)";
         public override void DecrementCounter(string key)
         {
             QueueCommand((connection, transaction) => connection.Execute(
-                $@"insert into [{_storage.SchemaName}].Counter ([Key], [Value]) values (@key, @value)",
+                $@"insert into [{_storage.SchemaName}].Counter ([Id], [Key], [Value]) values (NEWID(), @key, @value)",
                 new { key, value = -1 },
                 transaction,
                 _storage.CommandTimeout));
@@ -182,7 +182,7 @@ values (@jobId, @name, @reason, @createdAt, @data)";
         public override void DecrementCounter(string key, TimeSpan expireIn)
         {
             QueueCommand((connection, transaction) => connection.Execute(
-                $@"insert into [{_storage.SchemaName}].Counter ([Key], [Value], [ExpireAt]) values (@key, @value, @expireAt)",
+                $@"insert into [{_storage.SchemaName}].Counter ([Id], [Key], [Value], [ExpireAt]) values (NEWID(), @key, @value, @expireAt)",
                 new { key, value = -1, expireAt = DateTime.UtcNow.Add(expireIn) },
                 transaction,
                 _storage.CommandTimeout));
@@ -226,7 +226,7 @@ when not matched then insert ([Key], Value, Score) values (Source.[Key], Source.
         {
             AcquireListLock();
             QueueCommand((connection, transaction) => connection.Execute(
-                $@"insert into [{_storage.SchemaName}].List ([Key], Value) values (@key, @value);",
+                $@"insert into [{_storage.SchemaName}].List ([Id], [Key], Value) values (NEWID(), @key, @value);",
                 new { key, value },
                 transaction,
                 _storage.CommandTimeout));
@@ -300,8 +300,8 @@ when not matched then insert ([Key], Field, Value) values (Source.[Key], Source.
 
             // TODO: Rewrite using the `MERGE` statement.
             string query =
-$@"insert into [{_storage.SchemaName}].[Set] ([Key], Value, Score)
-values (@key, @value, 0.0)";
+$@"insert into [{_storage.SchemaName}].[Set] ([Id], [Key], Value, Score)
+values (NEWID(), @key, @value, 0.0)";
 
             AcquireSetLock();
             QueueCommand((connection, transaction) => connection.Execute(
@@ -320,7 +320,7 @@ values (@key, @value, 0.0)";
             AcquireSetLock();
             QueueCommand((connection, transaction) => connection.Execute(
                 query, 
-                new { key = key },
+                new { key = Guid.Parse(key) },
                 transaction,
                 _storage.CommandTimeout));
         }

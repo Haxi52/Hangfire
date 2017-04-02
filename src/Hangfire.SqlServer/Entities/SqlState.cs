@@ -20,7 +20,7 @@ namespace Hangfire.SqlServer.Entities
 {
     internal class SqlState
     {
-        public long JobId { get; set; }
+        public Guid JobId { get; set; }
         public string Name { get; set; }
         public string Reason { get; set; }
         public DateTime CreatedAt { get; set; }

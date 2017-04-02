@@ -78,18 +78,20 @@ namespace Hangfire.SqlServer
             if (parameters == null) throw new ArgumentNullException(nameof(parameters));
 
             string createJobSql =
-$@"insert into [{_storage.SchemaName}].Job (InvocationData, Arguments, CreatedAt, ExpireAt)
+$@"insert into [{_storage.SchemaName}].Job (Id, InvocationData, Arguments, CreatedAt, ExpireAt)
 output inserted.Id
-values (@invocationData, @arguments, @createdAt, @expireAt)";
+values (@id, @invocationData, @arguments, @createdAt, @expireAt)";
 
             var invocationData = InvocationData.Serialize(job);
 
             return _storage.UseConnection(connection =>
             {
-                var jobId = connection.ExecuteScalar<long>(
+                var jobId = Guid.NewGuid();
+                connection.Execute(
                     createJobSql,
                     new
                     {
+                        id = jobId,
                         invocationData = JobHelper.ToJson(invocationData),
                         arguments = invocationData.Arguments,
                         createdAt = createdAt,
@@ -105,20 +107,21 @@ values (@invocationData, @arguments, @createdAt, @expireAt)";
                     {
                         parameterArray[parameterIndex++] = new
                         {
-                            jobId = long.Parse(jobId),
+                            id = Guid.NewGuid(),
+                            jobId = jobId,
                             name = parameter.Key,
                             value = parameter.Value
                         };
                     }
 
                     string insertParameterSql =
-$@"insert into [{_storage.SchemaName}].JobParameter (JobId, Name, Value)
-values (@jobId, @name, @value)";
+$@"insert into [{_storage.SchemaName}].JobParameter (Id, JobId, Name, Value)
+values (@id, @jobId, @name, @value)";
 
                     connection.Execute(insertParameterSql, parameterArray, commandTimeout: _storage.CommandTimeout);
                 }
 
-                return jobId;
+                return jobId.ToString();
             });
         }
 
@@ -131,7 +134,7 @@ $@"select InvocationData, StateName, Arguments, CreatedAt from [{_storage.Schema
 
             return _storage.UseConnection(connection =>
             {
-                var jobData = connection.Query<SqlJob>(sql, new { id = long.Parse(id) }, commandTimeout: _storage.CommandTimeout)
+                var jobData = connection.Query<SqlJob>(sql, new { id = Guid.Parse(id) }, commandTimeout: _storage.CommandTimeout)
                     .SingleOrDefault();
 
                 if (jobData == null) return null;
@@ -174,7 +177,7 @@ where j.Id = @jobId";
 
             return _storage.UseConnection(connection =>
             {
-                var sqlState = connection.Query<SqlState>(sql, new { jobId = long.Parse(jobId) }, commandTimeout: _storage.CommandTimeout).SingleOrDefault();
+                var sqlState = connection.Query<SqlState>(sql, new { jobId = Guid.Parse(jobId) }, commandTimeout: _storage.CommandTimeout).SingleOrDefault();
                 if (sqlState == null)
                 {
                     return null;
@@ -205,7 +208,7 @@ $@";merge [{_storage.SchemaName}].JobParameter with (holdlock) as Target
 using (VALUES (@jobId, @name, @value)) as Source (JobId, Name, Value) 
 on Target.JobId = Source.JobId AND Target.Name = Source.Name
 when matched then update set Value = Source.Value
-when not matched then insert (JobId, Name, Value) values (Source.JobId, Source.Name, Source.Value);",
+when not matched then insert (Id, JobId, Name, Value) values (NEWID(), Source.JobId, Source.Name, Source.Value);",
                     new { jobId = long.Parse(id), name, value },
                     commandTimeout: _storage.CommandTimeout);
             });
@@ -218,7 +221,7 @@ when not matched then insert (JobId, Name, Value) values (Source.JobId, Source.N
 
             return _storage.UseConnection(connection => connection.ExecuteScalar<string>(
                 $@"select top (1) Value from [{_storage.SchemaName}].JobParameter with (readcommittedlock) where JobId = @id and Name = @name",
-                new { id = long.Parse(id), name = name },
+                new { id = Guid.Parse(id), name = name },
                 commandTimeout: _storage.CommandTimeout));
         }
 

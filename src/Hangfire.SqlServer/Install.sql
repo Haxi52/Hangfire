@@ -70,15 +70,15 @@ BEGIN
         
     -- Create job tables
     CREATE TABLE [$(HangFireSchema)].[Job] (
-        [Id] [int] IDENTITY(1,1) NOT NULL,
-		[StateId] [int] NULL,
+        [Id] UNIQUEIDENTIFIER NOT NULL,
+		[StateId] UNIQUEIDENTIFIER NULL,
 		[StateName] [nvarchar](20) NULL, -- To speed-up queries.
         [InvocationData] [nvarchar](max) NOT NULL,
         [Arguments] [nvarchar](max) NOT NULL,
         [CreatedAt] [datetime] NOT NULL,
         [ExpireAt] [datetime] NULL,
 
-        CONSTRAINT [PK_HangFire_Job] PRIMARY KEY CLUSTERED ([Id] ASC)
+        CONSTRAINT [PK_HangFire_Job] PRIMARY KEY NONCLUSTERED ([Id] ASC)
     );
     PRINT 'Created table [$(HangFireSchema)].[Job]';
 
@@ -88,14 +88,14 @@ BEGIN
     -- Job history table
         
     CREATE TABLE [$(HangFireSchema)].[State] (
-        [Id] [int] IDENTITY(1,1) NOT NULL,
-        [JobId] [int] NOT NULL,
+        [Id] UNIQUEIDENTIFIER NOT NULL,
+        [JobId] UNIQUEIDENTIFIER NOT NULL,
 		[Name] [nvarchar](20) NOT NULL,
 		[Reason] [nvarchar](100) NULL,
         [CreatedAt] [datetime] NOT NULL,
         [Data] [nvarchar](max) NULL,
             
-        CONSTRAINT [PK_HangFire_State] PRIMARY KEY CLUSTERED ([Id] ASC)
+        CONSTRAINT [PK_HangFire_State] PRIMARY KEY NONCLUSTERED ([Id] ASC)
     );
     PRINT 'Created table [$(HangFireSchema)].[State]';
 
@@ -111,12 +111,12 @@ BEGIN
     -- Job parameters table
         
     CREATE TABLE [$(HangFireSchema)].[JobParameter](
-        [Id] [int] IDENTITY(1,1) NOT NULL,
-        [JobId] [int] NOT NULL,
+        [Id] UNIQUEIDENTIFIER NOT NULL,
+        [JobId] UNIQUEIDENTIFIER NOT NULL,
         [Name] [nvarchar](40) NOT NULL,
         [Value] [nvarchar](max) NULL,
             
-        CONSTRAINT [PK_HangFire_JobParameter] PRIMARY KEY CLUSTERED ([Id] ASC)
+        CONSTRAINT [PK_HangFire_JobParameter] PRIMARY KEY NONCLUSTERED ([Id] ASC)
     );
     PRINT 'Created table [$(HangFireSchema)].[JobParameter]';
 
@@ -135,12 +135,12 @@ BEGIN
     -- Job queue table
         
     CREATE TABLE [$(HangFireSchema)].[JobQueue](
-        [Id] [int] IDENTITY(1,1) NOT NULL,
-        [JobId] [int] NOT NULL,
+        [Id] UNIQUEIDENTIFIER NOT NULL,
+        [JobId] UNIQUEIDENTIFIER NOT NULL,
         [Queue] [nvarchar](20) NOT NULL,
         [FetchedAt] [datetime] NULL,
             
-        CONSTRAINT [PK_HangFire_JobQueue] PRIMARY KEY CLUSTERED ([Id] ASC)
+        CONSTRAINT [PK_HangFire_JobQueue] PRIMARY KEY NONCLUSTERED ([Id] ASC)
     );
     PRINT 'Created table [$(HangFireSchema)].[JobQueue]';
         
@@ -170,14 +170,14 @@ BEGIN
     -- Extension tables
         
     CREATE TABLE [$(HangFireSchema)].[Hash](
-        [Id] [int] IDENTITY(1,1) NOT NULL,
+        [Id] UNIQUEIDENTIFIER NOT NULL,
         [Key] [nvarchar](100) NOT NULL,
         [Name] [nvarchar](40) NOT NULL,
         [StringValue] [nvarchar](max) NULL,
         [IntValue] [int] NULL,
         [ExpireAt] [datetime] NULL,
             
-        CONSTRAINT [PK_HangFire_Hash] PRIMARY KEY CLUSTERED ([Id] ASC)
+        CONSTRAINT [PK_HangFire_Hash] PRIMARY KEY NONCLUSTERED ([Id] ASC)
     );
     PRINT 'Created table [$(HangFireSchema)].[Hash]';
         
@@ -188,23 +188,23 @@ BEGIN
     PRINT 'Created index [UX_HangFire_Hash_KeyAndName]';
         
     CREATE TABLE [$(HangFireSchema)].[List](
-        [Id] [int] IDENTITY(1,1) NOT NULL,
+        [Id] UNIQUEIDENTIFIER NOT NULL,
         [Key] [nvarchar](100) NOT NULL,
         [Value] [nvarchar](max) NULL,
         [ExpireAt] [datetime] NULL,
             
-        CONSTRAINT [PK_HangFire_List] PRIMARY KEY CLUSTERED ([Id] ASC)
+        CONSTRAINT [PK_HangFire_List] PRIMARY KEY NONCLUSTERED ([Id] ASC)
     );
     PRINT 'Created table [$(HangFireSchema)].[List]';
         
     CREATE TABLE [$(HangFireSchema)].[Set](
-        [Id] [int] IDENTITY(1,1) NOT NULL,
+        [Id] UNIQUEIDENTIFIER NOT NULL,
         [Key] [nvarchar](100) NOT NULL,
         [Score] [float] NOT NULL,
         [Value] [nvarchar](256) NOT NULL,
         [ExpireAt] [datetime] NULL,
             
-        CONSTRAINT [PK_HangFire_Set] PRIMARY KEY CLUSTERED ([Id] ASC)
+        CONSTRAINT [PK_HangFire_Set] PRIMARY KEY NONCLUSTERED ([Id] ASC)
     );
     PRINT 'Created table [$(HangFireSchema)].[Set]';
         
@@ -215,15 +215,13 @@ BEGIN
     PRINT 'Created index [UX_HangFire_Set_KeyAndValue]';
         
     CREATE TABLE [$(HangFireSchema)].[Value](
-        [Id] [int] IDENTITY(1,1) NOT NULL,
+        [Id] UNIQUEIDENTIFIER NOT NULL,
         [Key] [nvarchar](100) NOT NULL,
         [StringValue] [nvarchar](max) NULL,
         [IntValue] [int] NULL,
         [ExpireAt] [datetime] NULL,
             
-        CONSTRAINT [PK_HangFire_Value] PRIMARY KEY CLUSTERED (
-            [Id] ASC
-        )
+        CONSTRAINT [PK_HangFire_Value] PRIMARY KEY NONCLUSTERED ([Id] ASC)
     );
     PRINT 'Created table [$(HangFireSchema)].[Value]';
         
@@ -233,12 +231,12 @@ BEGIN
     PRINT 'Created index [UX_HangFire_Value_Key]';
 
 	CREATE TABLE [$(HangFireSchema)].[Counter](
-		[Id] [int] IDENTITY(1,1) NOT NULL,
+		[Id] UNIQUEIDENTIFIER NOT NULL,
 		[Key] [nvarchar](100) NOT NULL,
 		[Value] [tinyint] NOT NULL,
 		[ExpireAt] [datetime] NULL,
 
-		CONSTRAINT [PK_HangFire_Counter] PRIMARY KEY CLUSTERED ([Id] ASC)
+		CONSTRAINT [PK_HangFire_Counter] PRIMARY KEY NONCLUSTERED ([Id] ASC)
 	);
 	PRINT 'Created table [$(HangFireSchema)].[Counter]';
 
@@ -281,13 +279,13 @@ BEGIN
 	PRINT 'Dropped index [IX_HangFire_JobQueue_JobIdAndQueue]';
 
 	CREATE TABLE [$(HangFireSchema)].[Hash](
-		[Id] [int] IDENTITY(1,1) NOT NULL,
+		[Id] UNIQUEIDENTIFIER NOT NULL,
 		[Key] [nvarchar](100) NOT NULL,
 		[Field] [nvarchar](100) NOT NULL,
 		[Value] [nvarchar](max) NULL,
 		[ExpireAt] [datetime2](7) NULL,
 		
-		CONSTRAINT [PK_HangFire_Hash] PRIMARY KEY CLUSTERED ([Id] ASC)
+		CONSTRAINT [PK_HangFire_Hash] PRIMARY KEY NONCLUSTERED ([Id] ASC)
 	);
 	PRINT 'Created table [$(HangFireSchema)].[Hash]';
 
@@ -305,12 +303,12 @@ BEGIN
 	PRINT 'Installing schema version 4';
 
 	CREATE TABLE [$(HangFireSchema)].[AggregatedCounter] (
-		[Id] [int] IDENTITY(1,1) NOT NULL,
+		[Id] UNIQUEIDENTIFIER NOT NULL,
 		[Key] [nvarchar](100) NOT NULL,
 		[Value] [bigint] NOT NULL,
 		[ExpireAt] [datetime] NULL,
 
-		CONSTRAINT [PK_HangFire_CounterAggregated] PRIMARY KEY CLUSTERED ([Id] ASC)
+		CONSTRAINT [PK_HangFire_CounterAggregated] PRIMARY KEY NONCLUSTERED ([Id] ASC)
 	);
 	PRINT 'Created table [$(HangFireSchema)].[AggregatedCounter]';
 
